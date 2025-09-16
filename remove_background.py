@@ -4,12 +4,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-lower_color_green = np.array([35, 40, 40])
-upper_color_green = np.array([85, 255, 255])
-file_input = input()
-file_output = input()
-
-
 def load_img(file_path):
     """
     Функция проверяет, существует ли файл по указанному пути;
@@ -23,13 +17,13 @@ def load_img(file_path):
     """
 
     if not os.path.exists(file_path):
-        print("error: file not found")
+        print("error: file not found\n")
         return None
 
     image = cv2.imread(file_path, cv2.IMREAD_COLOR)
 
     if image is None:
-        print("error: the image was not uploaded")
+        print("error: the image was not uploaded\n")
         return None
 
     return image
@@ -48,11 +42,17 @@ def brg_to_hsv(image):
     return image_hsv
 
 
-def create_mask(image_hsv):
+def create_mask(image_hsv, lower_color_green = np.array([35, 40, 40]),
+                upper_color_green = np.array([85, 255, 255]), kernel_size=(5, 5)):
     """
         Создает инвертированную маску для заданного изображения в цветовом пространстве HSV.
 
         :param image_hsv: Изображение в формате HSV
+        :param lower_color_green: Нижняя граница диапазона цвета.
+            Используется для выделения областей, которые нужно замаскировать.
+        :param upper_color_green: Верхняя граница диапазона цвета
+        :param kernel_size: Размер структурного элемента для морфологических операций.
+            Чем больше ядро, тем сильнее "зачищаются" шумы и закрываются дырки.
         :return: inv_mask - бинарная инвертированная маска,
         где зеленые области из исходного изображения черные,
         а все остальное белое.
@@ -61,7 +61,7 @@ def create_mask(image_hsv):
     mask_ = cv2.inRange(image_hsv, lower_color_green, upper_color_green)
     inv_mask = cv2.bitwise_not(mask_)
 
-    kernel = np.ones((5, 5), np.uint8)
+    kernel = np.ones(kernel_size, np.uint8)
     inv_mask = cv2.morphologyEx(inv_mask, cv2.MORPH_OPEN, kernel)  # удаление шумов
     inv_mask = cv2.morphologyEx(inv_mask, cv2.MORPH_CLOSE, kernel)  # закрытие дыр
 
@@ -73,8 +73,8 @@ def final_img(image, mask_, f_res):
     Применяет маску к изображению, сохраняет результат и отображает его.
 
     :param image: исходное изображение в формате BGR
-        mask_: бинарная маска, применяемая к изображению
-        f_res: путь и имя файла для сохранения результата
+    :param mask_: бинарная маска, применяемая к изображению
+    :param f_res: путь и имя файла для сохранения результата
     """
 
     result = cv2.bitwise_and(image, image, mask=mask_)
@@ -86,9 +86,16 @@ def final_img(image, mask_, f_res):
     plt.show()
 
 
+def main():
+    file_input = input()
+    file_output = input()
+
+    img = load_img(file_input)
+
+    if img is not None:
+        img_hsv = brg_to_hsv(img)
+        mask = create_mask(img_hsv)
+        final_img(img, mask, file_output)
 
 
-img = load_img(file_input)
-img_hsv = brg_to_hsv(img)
-mask = create_mask(img_hsv)
-final_img(img, mask, file_output)
+main()
